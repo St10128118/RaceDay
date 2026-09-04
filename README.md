@@ -11,3 +11,11 @@ Event organisers create and manage race events, configure routes and categories,
 ### Participant
 
 Participants browse available events, enrol in a suitable category, manage their registration details, and view their race results.
+
+## CI/CD Screenshot
+
+The folder structure validation workflow runs automatically for pushes and pull requests targeting `main`.
+
+[![Folder Structure Workflow Part 1](https://github.com/St10128118/RaceDay/actions/workflows/folder-structure-workflow-part1.yml/badge.svg)](https://github.com/St10128118/RaceDay/actions/workflows/folder-structure-workflow-part1.yml)
+
+The badge above links to the workflow runs page, where the completed run and its validation results can be viewed.
