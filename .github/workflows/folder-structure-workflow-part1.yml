@@ -31,3 +31,17 @@ jobs:
               Write-Error "Required directory is missing: $directory"
             }
           }
+
+      - name: Verify required files
+        run: |
+          $requiredFiles = @(
+            "README.md",
+            "docs/create_database_script.sql",
+            "docs/API Endpoint Table.md",
+            "docs/RaceDay Entity Relationship Diagram (ERD).png"
+          )
+          foreach ($file in $requiredFiles) {
+            if (-not (Test-Path $file -PathType Leaf)) {
+              Write-Error "Required file is missing: $file"
+            }
+          }
