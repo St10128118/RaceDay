@@ -50,3 +50,23 @@ CREATE TABLE dbo.[User] (
     OrganisationName NVARCHAR(200)
 );
 GO
+
+------------------------------------------------------------
+-- TABLE: dbo.Event
+------------------------------------------------------------
+CREATE TABLE dbo.Event (
+    EventId INT IDENTITY(1,1) PRIMARY KEY,
+    OrganiserId INT NOT NULL,
+    Name NVARCHAR(200) NOT NULL,
+    Description NVARCHAR(MAX),
+    EventType NVARCHAR(50) NOT NULL,
+    Location NVARCHAR(200) NOT NULL,
+    City NVARCHAR(100) NOT NULL,
+    Province NVARCHAR(100) NOT NULL,
+    DistanceKm DECIMAL(6,2) NOT NULL,
+    EventDateTime DATETIME2 NOT NULL,
+    Status NVARCHAR(50) NOT NULL,
+    MaxParticipants INT,
+    FOREIGN KEY (OrganiserId) REFERENCES dbo.[User](UserId)
+);
+GO
