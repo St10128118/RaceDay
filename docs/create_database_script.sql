@@ -131,3 +131,15 @@ CREATE TABLE dbo.Route (
     FOREIGN KEY (EventId) REFERENCES dbo.Event(EventId)
 );
 GO
+
+------------------------------------------------------------
+-- INDEXES
+------------------------------------------------------------
+CREATE INDEX INDEX_Event_OrganiserId ON dbo.Event(OrganiserId);
+CREATE INDEX INDEX_Event_EventDateTime ON dbo.Event(EventDateTime);
+CREATE INDEX INDEX_EventCategory_EventId ON dbo.EventCategory(EventId);
+CREATE INDEX INDEX_Enrolment_EventId ON dbo.EventEnrolment(EventId);
+CREATE INDEX INDEX_Enrolment_ParticipantId ON dbo.EventEnrolment(ParticipantId);
+CREATE INDEX INDEX_Result_EnrolmentId ON dbo.Result(EnrolmentId);
+CREATE INDEX INDEX_Route_EventId ON dbo.Route(EventId);
+GO
