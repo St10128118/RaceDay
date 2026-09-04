@@ -14,8 +14,6 @@ Participants browse available events, enrol in a suitable category, manage their
 
 ## CI/CD Screenshot
 
-The folder structure validation workflow runs automatically for pushes and pull requests targeting `main`.
+The screenshot below is evidence that the GitHub Actions folder structure workflow passed successfully.
 
-[![Folder Structure Workflow Part 1](https://github.com/St10128118/RaceDay/actions/workflows/folder-structure-workflow-part1.yml/badge.svg)](https://github.com/St10128118/RaceDay/actions/workflows/folder-structure-workflow-part1.yml)
-
-The badge above links to the workflow runs page, where the completed run and its validation results can be viewed.
+![GitHub workflow passed](docs/green%20check%20mark.png)
