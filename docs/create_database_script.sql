@@ -30,3 +30,23 @@ IF OBJECT_ID('dbo.Route', 'U') IS NOT NULL DROP TABLE dbo.Route;
 IF OBJECT_ID('dbo.Event', 'U') IS NOT NULL DROP TABLE dbo.Event;
 IF OBJECT_ID('dbo.User', 'U') IS NOT NULL DROP TABLE dbo.[User];
 GO
+
+------------------------------------------------------------
+-- TABLE: dbo.User
+------------------------------------------------------------
+CREATE TABLE dbo.[User] (
+    UserId INT IDENTITY(1,1) PRIMARY KEY,
+    Role NVARCHAR(50) NOT NULL,
+    FirstName NVARCHAR(100) NOT NULL,
+    LastName NVARCHAR(100) NOT NULL,
+    Email NVARCHAR(200) NOT NULL UNIQUE,
+    PasswordHash NVARCHAR(500) NOT NULL,
+    Phone NVARCHAR(50),
+    DateOfBirth DATE,
+    Gender NVARCHAR(20),
+    IdNumber NVARCHAR(50),
+    EmergencyContactName NVARCHAR(200),
+    EmergencyContactPhone NVARCHAR(50),
+    OrganisationName NVARCHAR(200)
+);
+GO
