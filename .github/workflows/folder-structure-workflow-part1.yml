@@ -22,3 +22,12 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+
+      - name: Verify required directories
+        run: |
+          $requiredDirectories = @(".github", ".github/workflows", "docs")
+          foreach ($directory in $requiredDirectories) {
+            if (-not (Test-Path $directory -PathType Container)) {
+              Write-Error "Required directory is missing: $directory"
+            }
+          }
