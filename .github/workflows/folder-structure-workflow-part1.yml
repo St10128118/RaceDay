@@ -14,3 +14,8 @@ permissions:
 defaults:
   run:
     shell: pwsh
+
+jobs:
+  validate-folder-structure:
+    name: Validate folder structure
+    runs-on: windows-latest
