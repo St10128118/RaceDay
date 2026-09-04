@@ -84,3 +84,21 @@ CREATE TABLE dbo.EventCategory (
     FOREIGN KEY (EventId) REFERENCES dbo.Event(EventId)
 );
 GO
+
+------------------------------------------------------------
+-- TABLE: dbo.EventEnrolment
+------------------------------------------------------------
+CREATE TABLE dbo.EventEnrolment (
+    EnrolmentId INT IDENTITY(1,1) PRIMARY KEY,
+    EventId INT NOT NULL,
+    CategoryId INT NOT NULL,
+    ParticipantId INT NOT NULL,
+    EnrolmentDate DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    PaymentStatus NVARCHAR(50) NOT NULL,
+    BibNumber NVARCHAR(50),
+    IsConfirmed BIT NOT NULL DEFAULT 0,
+    FOREIGN KEY (EventId) REFERENCES dbo.Event(EventId),
+    FOREIGN KEY (CategoryId) REFERENCES dbo.EventCategory(CategoryId),
+    FOREIGN KEY (ParticipantId) REFERENCES dbo.[User](UserId)
+);
+GO
