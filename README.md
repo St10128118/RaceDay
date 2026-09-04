@@ -16,4 +16,4 @@ Participants browse available events, enrol in a suitable category, manage their
 
 The screenshot below is evidence that the GitHub Actions folder structure workflow passed successfully.
 
-![GitHub workflow passed](docs/green%20check%20mark.png)
+![GitHub workflow passed](docs/greenCheckMark.png)
