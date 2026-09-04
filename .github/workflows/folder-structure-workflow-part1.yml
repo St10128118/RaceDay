@@ -1,1 +1,9 @@
 name: Folder Structure Workflow Part 1
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
