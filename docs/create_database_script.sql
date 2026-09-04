@@ -102,3 +102,18 @@ CREATE TABLE dbo.EventEnrolment (
     FOREIGN KEY (ParticipantId) REFERENCES dbo.[User](UserId)
 );
 GO
+
+------------------------------------------------------------
+-- TABLE: dbo.Result
+------------------------------------------------------------
+CREATE TABLE dbo.Result (
+    ResultId INT IDENTITY(1,1) PRIMARY KEY,
+    EnrolmentId INT NOT NULL UNIQUE,
+    FinishTimeSeconds INT,
+    PositionOverall INT,
+    PositionCategory INT,
+    PositionGender INT,
+    Status NVARCHAR(50) NOT NULL,
+    FOREIGN KEY (EnrolmentId) REFERENCES dbo.EventEnrolment(EnrolmentId)
+);
+GO
