@@ -117,3 +117,17 @@ CREATE TABLE dbo.Result (
     FOREIGN KEY (EnrolmentId) REFERENCES dbo.EventEnrolment(EnrolmentId)
 );
 GO
+
+------------------------------------------------------------
+-- TABLE: dbo.Route
+------------------------------------------------------------
+CREATE TABLE dbo.Route (
+    RouteId INT IDENTITY(1,1) PRIMARY KEY,
+    EventId INT NOT NULL,
+    Name NVARCHAR(200) NOT NULL,
+    DistanceKm DECIMAL(6,2) NOT NULL,
+    GPXUrl NVARCHAR(500),
+    ElevationGainMeters INT,
+    FOREIGN KEY (EventId) REFERENCES dbo.Event(EventId)
+);
+GO
