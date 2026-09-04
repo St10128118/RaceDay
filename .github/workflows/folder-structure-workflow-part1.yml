@@ -19,3 +19,6 @@ jobs:
   validate-folder-structure:
     name: Validate folder structure
     runs-on: windows-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
