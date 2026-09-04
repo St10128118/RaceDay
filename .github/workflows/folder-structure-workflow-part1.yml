@@ -45,3 +45,21 @@ jobs:
               Write-Error "Required file is missing: $file"
             }
           }
+
+      - name: Validate database script
+        run: |
+          $scriptPath = "docs/create_database_script.sql"
+          $scriptContent = Get-Content $scriptPath -Raw
+          $requiredTables = @(
+            "dbo.[User]",
+            "dbo.Event",
+            "dbo.EventCategory",
+            "dbo.EventEnrolment",
+            "dbo.Result",
+            "dbo.Route"
+          )
+          foreach ($table in $requiredTables) {
+            if ($scriptContent -notmatch [regex]::Escape("CREATE TABLE $table")) {
+              Write-Error "Required table definition is missing: $table"
+            }
+          }
