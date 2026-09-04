@@ -70,3 +70,17 @@ CREATE TABLE dbo.Event (
     FOREIGN KEY (OrganiserId) REFERENCES dbo.[User](UserId)
 );
 GO
+
+------------------------------------------------------------
+-- TABLE: dbo.EventCategory
+------------------------------------------------------------
+CREATE TABLE dbo.EventCategory (
+    CategoryId INT IDENTITY(1,1) PRIMARY KEY,
+    EventId INT NOT NULL,
+    Name NVARCHAR(100) NOT NULL,
+    DistanceKm DECIMAL(6,2),
+    MinAge INT,
+    MaxAge INT,
+    FOREIGN KEY (EventId) REFERENCES dbo.Event(EventId)
+);
+GO
