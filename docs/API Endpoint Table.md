@@ -6,9 +6,9 @@
 | POST | /api/v1/auth/login | Authenticates a user and returns a JWT token. | None (public) | { email, password } | 200 OK – Token returned. 401 Unauthorized – Invalid credentials. |
 | GET | /api/v1/users/me | Returns the authenticated user's profile. | Any (logged in) | N/A | 200 OK – User profile. 401 Unauthorized – Not logged in. |
 | PUT | /api/v1/users/me | Updates the authenticated user's profile. | Any (logged in) | { firstName?, lastName?, phone?, emergencyContact?, organisationName? } | 200 OK – Updated profile. 400 Bad Request – Invalid fields. |
-| GET | /api/v1/events | Returns all events (filterable). | None (public) | N/A | 200 OK – List of events. |
+| GET | /api/v1/events | Returns events (filterable by `city`, `province`, `eventType`, `from`, and `to`). | None (public) | N/A | 200 OK – List of events. 400 Bad Request – Invalid date range. |
 | GET | /api/v1/events/{eventId} | Returns details of a single event. | None (public) | N/A | 200 OK – Event details. 404 Not Found. |
-| POST | /api/v1/events | Creates a new event. | Organiser only | { name, description, eventType, location, city, province, distanceKm, eventDateTime, maxParticipants } | 201 Created – Event created. 400 Bad Request. |
+| POST | /api/v1/events | Creates a new event. | Organiser only | { name, description, eventType, location, city, province, distanceKm, eventDateTime, maxParticipants } (`status` is optional; defaults to `Scheduled`) | 201 Created – Event created. 400 Bad Request. |
 | PUT | /api/v1/events/{eventId} | Updates an existing event. | Organiser only | { name?, description?, eventType?, ... } | 200 OK – Updated. 403 Forbidden – Not owner. |
 | DELETE | /api/v1/events/{eventId} | Deletes an event. | Organiser only | N/A | 204 No Content – Deleted. 403 Forbidden – Not owner. |
 | GET | /api/v1/events/{eventId}/categories | Returns all categories for an event. | None (public) | N/A | 200 OK – List of categories. |
