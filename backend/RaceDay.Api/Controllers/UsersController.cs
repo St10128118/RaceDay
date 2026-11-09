@@ -62,7 +62,7 @@ public sealed class UsersController(RaceDayDbContext db) : ControllerBase
 
     [HttpGet("me/history")]
     [Authorize(Roles = "Participant")]
-    public async Task<ActionResult<IEnumerable<ParticipantHistoryDto>>> GetHistory()
+    public async Task<ActionResult<IEnumerable<ParticipantHistoryDto>>> GetHistory(CancellationToken cancellationToken)
     {
         var userId = User.GetUserId();
         if (userId is null) return Forbid();
@@ -72,7 +72,14 @@ public sealed class UsersController(RaceDayDbContext db) : ControllerBase
             .Include(enrolment => enrolment.Event)
             .Include(enrolment => enrolment.Result)
             .OrderByDescending(enrolment => enrolment.Event!.EventDateTime)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
+
+        var eventIds = enrolments.Select(enrolment => enrolment.EventId).Distinct().ToArray();
+        var finisherCounts = await db.Result.AsNoTracking()
+            .Where(result => eventIds.Contains(result.Enrolment!.EventId) && result.Status == "Finished")
+            .GroupBy(result => result.Enrolment!.EventId)
+            .Select(group => new { EventId = group.Key, Count = group.Count() })
+            .ToDictionaryAsync(item => item.EventId, item => item.Count, cancellationToken);
 
         var history = enrolments.Select(enrolment => new ParticipantHistoryDto
         {
@@ -110,7 +117,8 @@ public sealed class UsersController(RaceDayDbContext db) : ControllerBase
                 PositionOverall = enrolment.Result.PositionOverall,
                 PositionCategory = enrolment.Result.PositionCategory,
                 PositionGender = enrolment.Result.PositionGender,
-                Status = enrolment.Result.Status
+                Status = enrolment.Result.Status,
+                TotalFinishers = finisherCounts.GetValueOrDefault(enrolment.EventId)
             }
         });
 
