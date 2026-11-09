@@ -21,7 +21,20 @@ public sealed class EnrolmentsController(RaceDayDbContext db) : ControllerBase
         var enrolments = await db.EventEnrolment.AsNoTracking()
             .Where(enrolment => enrolment.EventId == eventId)
             .OrderBy(enrolment => enrolment.EnrolmentId)
-            .Select(enrolment => ToDto(enrolment))
+            .Select(enrolment => new EnrolmentDto
+            {
+                EnrolmentId = enrolment.EnrolmentId,
+                EventId = enrolment.EventId,
+                CategoryId = enrolment.CategoryId,
+                ParticipantId = enrolment.ParticipantId,
+                EnrolmentDate = enrolment.EnrolmentDate,
+                PaymentStatus = enrolment.PaymentStatus,
+                BibNumber = enrolment.BibNumber,
+                IsConfirmed = enrolment.IsConfirmed,
+                ParticipantFirstName = enrolment.Participant!.FirstName,
+                ParticipantLastName = enrolment.Participant.LastName,
+                CategoryName = enrolment.Category!.Name
+            })
             .ToListAsync();
         return Ok(enrolments);
     }
@@ -45,9 +58,11 @@ public sealed class EnrolmentsController(RaceDayDbContext db) : ControllerBase
         if (participantId is null) return Forbid();
 
         var eventInfo = await db.Event.Where(item => item.EventId == eventId)
-            .Select(item => new { item.EventId, item.MaxParticipants })
+            .Select(item => new { item.EventId, item.MaxParticipants, item.EventDateTime, item.Status })
             .SingleOrDefaultAsync();
         if (eventInfo is null) return NotFound();
+        if (eventInfo.Status != "Scheduled" || eventInfo.EventDateTime <= DateTime.UtcNow)
+            return Conflict(new { message = "Enrolment is available only for future scheduled events." });
 
         var categoryExists = await db.EventCategory.AnyAsync(category =>
             category.CategoryId == request.CategoryId && category.EventId == eventId);
@@ -102,6 +117,11 @@ public sealed class EnrolmentsController(RaceDayDbContext db) : ControllerBase
         var enrolment = await db.EventEnrolment.SingleOrDefaultAsync(item => item.EnrolmentId == enrolmentId);
         if (enrolment is null) return NotFound();
         if (enrolment.ParticipantId != participantId.Value) return Forbid();
+        var eventInfo = await db.Event.Where(item => item.EventId == enrolment.EventId)
+            .Select(item => new { item.EventDateTime, item.Status })
+            .SingleAsync();
+        if (eventInfo.Status != "Scheduled" || eventInfo.EventDateTime <= DateTime.UtcNow)
+            return Conflict(new { message = "Enrolment can only be cancelled before the scheduled event starts." });
         if (await db.Result.AnyAsync(result => result.EnrolmentId == enrolmentId))
             return Conflict(new { message = "An enrolment with a result cannot be cancelled." });
 
