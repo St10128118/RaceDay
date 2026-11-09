@@ -7,20 +7,24 @@ using Microsoft.OpenApi.Models;
 using RaceDay.Api.Data;
 using RaceDay.Api.Services;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    Args = args,
+    EnvironmentName = Environments.Development
+});
 
 // Configuration
-var jwtKey = builder.Configuration["Jwt:Key"];
+var jwtKey = builder.Configuration["Jwt:Key"]; // Required for production, set in appsettings.json
 var usesEphemeralJwtKey = false;
 if (string.IsNullOrWhiteSpace(jwtKey))
 {
     if (!builder.Environment.IsDevelopment())
     {
-        throw new InvalidOperationException("Set Jwt:Key");
+        throw new InvalidOperationException("Jwt:Key configuration is required for production. Set it in appsettings.json or environment variables.");
     }
 
-    jwtKey = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
-    builder.Configuration["Jwt:Key"] = jwtKey;
+    jwtKey = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+    builder.Configuration["Jwt:Key"] = jwtKey; // Temporary key for development
     usesEphemeralJwtKey = true;
 }
 
@@ -64,6 +68,11 @@ builder.Services.AddHttpClient<IWeatherService, OpenMeteoWeatherService>(client 
 });
 
 var keyBytes = Encoding.UTF8.GetBytes(jwtKey);
+if (keyBytes.Length < 64)
+{
+    throw new InvalidOperationException("Jwt:Key must be at least 64 UTF-8 bytes (512 bits) for HS512.");
+}
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -92,7 +101,9 @@ if (usesEphemeralJwtKey)
 {
     app.Logger.LogWarning("Using a temporary JWT signing key for local development. Tokens expire when the API restarts.");
 }
-
+Console.WriteLine($"Environment builder: {builder.Environment.EnvironmentName}");
+Console.WriteLine($"Environment app: {app.Environment.EnvironmentName}");
+Console.WriteLine($"JWT key configured: {!string.IsNullOrWhiteSpace(jwtKey)}");
 if (app.Environment.IsDevelopment())
 {
     using var scope = app.Services.CreateScope();

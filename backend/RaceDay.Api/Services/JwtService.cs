@@ -17,6 +17,9 @@ namespace RaceDay.Api.Services
         {
             _key = configuration["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key missing");
             _issuer = configuration["Jwt:Issuer"] ?? "RaceDay";
+
+            if (Encoding.UTF8.GetByteCount(_key) < 64)
+                throw new InvalidOperationException("Jwt:Key must be at least 64 UTF-8 bytes (512 bits) for HS512.");
         }
 
         public string GenerateAccessToken(User user)
@@ -31,7 +34,7 @@ namespace RaceDay.Api.Services
             };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_key));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512);
             var token = new JwtSecurityToken(_issuer, null, claims, expires: DateTime.UtcNow.AddHours(2), signingCredentials: creds);
             return new JwtSecurityTokenHandler().WriteToken(token);
         }

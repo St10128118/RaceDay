@@ -13,7 +13,7 @@ namespace RaceDay.Api.Tests;
 
 public sealed class RaceDayApiFactory : WebApplicationFactory<Program>
 {
-    public const string JwtKey = "integration-test-signing-key-12345678901234567890";
+    public const string JwtKey = "RaceDayTestsKey-RaceDayTestsKey-RaceDayTestsKey-RaceDayTestsKeyX";
     private readonly string _databaseName = $"RaceDayTests_{Guid.NewGuid():N}";
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
