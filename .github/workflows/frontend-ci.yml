@@ -1,0 +1,32 @@
+name: Frontend CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build MVC frontend
+    runs-on: windows-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore frontend and tests
+        run: dotnet restore frontend\RaceDayMVCApp.Tests\RaceDayMVCApp.Tests.csproj
+
+      - name: Build frontend
+        run: dotnet build frontend\RaceDayMVCApp\RaceDayMVCApp.csproj --no-restore --configuration Release
+
+      - name: Test frontend
+        run: dotnet test frontend\RaceDayMVCApp.Tests\RaceDayMVCApp.Tests.csproj --no-restore --configuration Release
