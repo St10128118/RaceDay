@@ -97,6 +97,10 @@ namespace RaceDay.Api.Controllers
         {
             var userId = User.GetUserId();
             if (userId is null) return Forbid();
+            if (dto.EventDateTime <= DateTime.UtcNow)
+                return BadRequest(new { message = "An event must be scheduled for a future date and time." });
+            if (!string.Equals(dto.Status, "Scheduled", StringComparison.OrdinalIgnoreCase))
+                return BadRequest(new { message = "New events must have Scheduled status." });
 
             var ev = new Event
             {
@@ -109,7 +113,7 @@ namespace RaceDay.Api.Controllers
                 Province = dto.Province,
                 DistanceKm = dto.DistanceKm,
                 EventDateTime = dto.EventDateTime,
-                Status = dto.Status,
+                Status = "Scheduled",
                 MaxParticipants = dto.MaxParticipants
             };
 
@@ -132,6 +136,11 @@ namespace RaceDay.Api.Controllers
 
             if (ev.OrganiserId != userId.Value) return Forbid();
 
+            if (dto.EventDateTime.HasValue &&
+                ev.Status == "Scheduled" &&
+                dto.EventDateTime.Value <= DateTime.UtcNow)
+                return BadRequest(new { message = "A scheduled event must remain in the future." });
+
             // Apply updates if provided
             if (dto.Name is not null) ev.Name = dto.Name.Trim();
             if (dto.Description is not null) ev.Description = dto.Description;
@@ -141,9 +150,35 @@ namespace RaceDay.Api.Controllers
             if (dto.Province is not null) ev.Province = dto.Province.Trim();
             if (dto.DistanceKm.HasValue) ev.DistanceKm = dto.DistanceKm.Value;
             if (dto.EventDateTime.HasValue) ev.EventDateTime = dto.EventDateTime.Value;
-            if (dto.Status is not null) ev.Status = dto.Status.Trim();
+            if (dto.Status is not null)
+            {
+                if (!string.Equals(dto.Status, "Completed", StringComparison.OrdinalIgnoreCase) ||
+                    ev.Status != "Scheduled" ||
+                    ev.EventDateTime > DateTime.UtcNow)
+                    return BadRequest(new { message = "Only a past scheduled event can be marked Completed. Use the cancellation action to cancel an event." });
+
+                ev.Status = "Completed";
+            }
             if (dto.MaxParticipants.HasValue) ev.MaxParticipants = dto.MaxParticipants;
 
+            await _db.SaveChangesAsync();
+            return Ok(ToDto(ev));
+        }
+
+        [HttpPost("{id:int}/cancel")]
+        [Authorize(Roles = "Organiser")]
+        public async Task<ActionResult> Cancel(int id)
+        {
+            var ev = await _db.Event.FindAsync(id);
+            if (ev == null) return NotFound();
+
+            var userId = User.GetUserId();
+            if (userId is null) return Forbid();
+            if (ev.OrganiserId != userId.Value) return Forbid();
+            if (ev.Status != "Scheduled")
+                return Conflict(new { message = "Only scheduled events can be cancelled." });
+
+            ev.Status = "Cancelled";
             await _db.SaveChangesAsync();
             return Ok(ToDto(ev));
         }
