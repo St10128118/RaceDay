@@ -23,12 +23,12 @@ The screenshot below is evidence that the GitHub Actions folder structure workfl
 The backend targets .NET 10 LTS and uses SQL Server Express. Install the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) and make sure SQL Server Express is running; the Development connection string is in `backend\RaceDay.Api\appsettings.Development.json`.
 
 ```powershell
-dotnet run --project backend\RaceDay.Api\RaceDay.Api.csproj
+dotnet run --project backend\RaceDay.Api\RaceDay.Api.csproj --launch-profile RaceDay.Api
 ```
 
-The API uses its Development launch profile and local SQL Server Express settings automatically, creates the database schema if it does not already exist, and opens Swagger at `http://localhost:5108/swagger`. It generates a temporary JWT key for local development; tokens expire when the API restarts.
+The `RaceDay.Api` profile uses Development mode and the local SQL Server Express settings, creates the database schema if it does not already exist, and opens Swagger at `http://localhost:5108/swagger`. It generates a temporary JWT key for local development; tokens expire when the API restarts.
 
-**Visual Studio:** Open `RaceDay.sln`, choose `RaceDay.Api` in the startup-project dropdown if it is not already selected, then press the green Run button. The `RaceDay.Api` launch profile sets Development mode, launches the browser to Swagger, and uses the same local database settings.
+**Visual Studio:** Open `RaceDay.sln`, select the `RaceDay.Api` project and its `RaceDay.Api` launch profile, then press **Run**.
 
 Run the backend tests in another PowerShell window:
 
@@ -40,17 +40,19 @@ For shared or deployed environments, configure a private `Jwt:Key` and a product
 
 ## Running the MVC frontend locally
 
-Start the backend API first, then run the MVC application:
-
-```powershell
-dotnet run --project frontend\RaceDayMVCApp\RaceDayMVCApp.csproj --launch-profile http
-```
-
-The frontend opens at `http://localhost:5280` and uses `RaceDayApi:BaseUrl` from `frontend\RaceDayMVCApp\appsettings.json` (default `http://localhost:5000`). The backend's current Visual Studio launch profile uses port `5108`; if you use that profile, override the frontend API URL before launching it:
+Start the backend API first using the `RaceDay.Api` profile above. In a second terminal, set the API URL and run the MVC app with its `http` profile:
 
 ```powershell
 $env:RaceDayApi__BaseUrl = "http://localhost:5108"
 dotnet run --project frontend\RaceDayMVCApp\RaceDayMVCApp.csproj --launch-profile http
 ```
 
-The frontend calls the API for all event, account, enrolment, and result data. Event forecasts are requested by the API from Open-Meteo and may be unavailable more than 16 days before an event.
+The `http` profile opens the frontend at `http://localhost:5280`. The `https` profile uses `https://localhost:7165` (and also listens on HTTP port `5280`); trust the local HTTPS development certificate first if needed:
+
+```powershell
+dotnet dev-certs https --trust
+$env:RaceDayApi__BaseUrl = "http://localhost:5108"
+dotnet run --project frontend\RaceDayMVCApp\RaceDayMVCApp.csproj --launch-profile https
+```
+
+In Visual Studio, open `frontend\RaceDayMVCApp\RaceDayMVCApp.csproj`, select the `http` or `https` profile, and press **Run**. Add `"RaceDayApi__BaseUrl": "http://localhost:5108"` to that profile's `environmentVariables` in `frontend\RaceDayMVCApp\Properties\launchSettings.json` so the frontend connects to the API profile. Visual Studio 2022 17.14 does not support .NET 10; use the CLI with the .NET 10 SDK or Visual Studio 18+. The frontend calls the API for event, account, enrolment, and result data. Event forecasts come from Open-Meteo and may be unavailable more than 16 days before an event.
