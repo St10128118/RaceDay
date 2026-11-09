@@ -37,3 +37,20 @@ dotnet test backend\RaceDay.Api.Tests\RaceDay.Api.Tests.csproj
 ```
 
 For shared or deployed environments, configure a private `Jwt:Key` and a production database connection; the temporary development key and local SQL Server settings are not suitable for production.
+
+## Running the MVC frontend locally
+
+Start the backend API first, then run the MVC application:
+
+```powershell
+dotnet run --project frontend\RaceDayMVCApp\RaceDayMVCApp.csproj --launch-profile http
+```
+
+The frontend opens at `http://localhost:5280` and uses `RaceDayApi:BaseUrl` from `frontend\RaceDayMVCApp\appsettings.json` (default `http://localhost:5000`). The backend's current Visual Studio launch profile uses port `5108`; if you use that profile, override the frontend API URL before launching it:
+
+```powershell
+$env:RaceDayApi__BaseUrl = "http://localhost:5108"
+dotnet run --project frontend\RaceDayMVCApp\RaceDayMVCApp.csproj --launch-profile http
+```
+
+The frontend calls the API for all event, account, enrolment, and result data. Event forecasts are requested by the API from Open-Meteo and may be unavailable more than 16 days before an event.
