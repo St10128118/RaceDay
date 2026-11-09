@@ -1,0 +1,95 @@
+@model OrganiserDashboardViewModel
+@using RaceDayMVCApp.Services
+@{
+    ViewData["Title"] = "Organiser dashboard";
+}
+
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-3 mb-4">
+    <div>
+        <p class="eyebrow mb-1">Your race control</p>
+        <h1 class="h2 display-heading mb-0">Organiser dashboard</h1>
+    </div>
+    <a class="btn btn-primary" asp-action="CreateEvent">＋ Create event</a>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.Error))
+{
+    <div class="alert alert-warning" role="status">@Model.Error</div>
+}
+
+@if (Model.Events.Count == 0 && string.IsNullOrWhiteSpace(Model.Error))
+{
+    <div class="surface-card p-5 text-center">
+        <p class="eyebrow">Your first start line</p>
+        <h2 class="h4 display-heading">No events yet</h2>
+        <p class="text-muted">Create an event, add categories and route details, then open the start list.</p>
+        <a class="btn btn-primary" asp-action="CreateEvent">Create your first event</a>
+    </div>
+}
+else
+{
+    <div class="surface-card overflow-hidden">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr><th>Event</th><th>Date</th><th>Status</th><th>Enrolments</th><th class="text-end">Manage</th></tr>
+                </thead>
+                <tbody>
+                @foreach (var summary in Model.Events)
+                {
+                    var raceEvent = summary.Event;
+                    var start = SouthAfricaTime.ToLocal(raceEvent.EventDateTime);
+                    <tr>
+                        <td>
+                            <div class="fw-bold">@raceEvent.Name</div>
+                            <div class="event-meta">@raceEvent.City, @raceEvent.Province · @raceEvent.DistanceKm.ToString("0.##") km @raceEvent.EventType</div>
+                        </td>
+                        <td>@start.ToString("d MMM yyyy · HH:mm")</td>
+                        <td><span class="status-pill @(raceEvent.Status == "Cancelled" ? "status-cancelled" : raceEvent.Status == "Completed" ? "status-finished" : "status-confirmed")">@raceEvent.Status</span></td>
+                        <td>
+                            @if (summary.CountError is not null)
+                            {
+                                <span class="text-danger small">@summary.CountError</span>
+                            }
+                            else
+                            {
+                                <span class="fw-semibold">@summary.EnrolmentCount</span>
+                            }
+                        </td>
+                        <td>
+                            <div class="d-flex flex-wrap justify-content-end gap-2">
+                                @if (raceEvent.Status == "Scheduled")
+                                {
+                                    <a class="btn btn-sm btn-outline-primary" asp-action="EditEvent" asp-route-eventId="@raceEvent.EventId">Edit</a>
+                                    <a class="btn btn-sm btn-outline-primary" asp-action="Categories" asp-route-eventId="@raceEvent.EventId">Categories</a>
+                                    <a class="btn btn-sm btn-outline-primary" asp-action="Routes" asp-route-eventId="@raceEvent.EventId">Routes</a>
+                                    <a class="btn btn-sm btn-outline-primary" asp-action="Enrolments" asp-route-eventId="@raceEvent.EventId">Start list</a>
+                                    <form asp-action="CancelEvent" asp-route-eventId="@raceEvent.EventId" method="post" onsubmit="return confirm('Cancel this event? Existing enrolments will remain in participant history.');">
+                                        <button class="btn btn-sm btn-outline-danger" type="submit">Cancel</button>
+                                    </form>
+                                    @if (start <= SouthAfricaTime.ToLocal(DateTime.UtcNow))
+                                    {
+                                        <form asp-action="CompleteEvent" asp-route-eventId="@raceEvent.EventId" method="post">
+                                            <button class="btn btn-sm btn-outline-success" type="submit">Mark completed</button>
+                                        </form>
+                                    }
+                                    @if (summary.CountError is null && summary.EnrolmentCount == 0)
+                                    {
+                                        <form asp-action="DeleteEvent" asp-route-eventId="@raceEvent.EventId" method="post" onsubmit="return confirm('Permanently delete this event?');">
+                                            <button class="btn btn-sm btn-outline-secondary" type="submit">Delete</button>
+                                        </form>
+                                    }
+                                }
+                                else
+                                {
+                                    <a class="btn btn-sm btn-outline-primary" asp-action="Enrolments" asp-route-eventId="@raceEvent.EventId">Results &amp; roster</a>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
