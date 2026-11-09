@@ -7,7 +7,10 @@ using System.Threading.Tasks;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
+using RaceDay.Api.Data;
 using RaceDay.Api.DTOs.Auth;
 using Xunit;
 
@@ -77,7 +80,7 @@ public sealed class ApiIntegrationTests
             province = "Western Cape",
             distanceKm = 10m,
             eventDateTime = DateTime.UtcNow.AddDays(30),
-            status = "Open",
+            status = "Scheduled",
             maxParticipants = 100
         };
 
@@ -152,6 +155,27 @@ public sealed class ApiIntegrationTests
         using var otherOrganizerList = Authorized(HttpMethod.Get, $"/api/v1/events/{eventId}/enrolments", anotherOrganiserToken);
         Assert.Equal(HttpStatusCode.Forbidden, (await client.SendAsync(otherOrganizerList)).StatusCode);
 
+        using var organiserList = Authorized(HttpMethod.Get, $"/api/v1/events/{eventId}/enrolments", organiserToken);
+        var organiserListResponse = await client.SendAsync(organiserList);
+        Assert.Equal(HttpStatusCode.OK, organiserListResponse.StatusCode);
+        var roster = await organiserListResponse.Content.ReadAsStringAsync();
+        Assert.Contains("Integration", roster, StringComparison.Ordinal);
+        Assert.Contains("User", roster, StringComparison.Ordinal);
+        Assert.Contains("10 km", roster, StringComparison.Ordinal);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<RaceDayDbContext>();
+            var raceEvent = await db.Event.SingleAsync(item => item.EventId == eventId);
+            raceEvent.EventDateTime = DateTime.UtcNow.AddMinutes(-1);
+            await db.SaveChangesAsync();
+        }
+        using var completeEvent = Authorized(HttpMethod.Put, $"/api/v1/events/{eventId}", organiserToken, new
+        {
+            status = "Completed"
+        });
+        Assert.Equal(HttpStatusCode.OK, (await client.SendAsync(completeEvent)).StatusCode);
+
         using var resultRequest = Authorized(HttpMethod.Post, $"/api/v1/enrolments/{enrolment.EnrolmentId}/result", organiserToken, new
         {
             finishTimeSeconds = 3600,
@@ -164,7 +188,33 @@ public sealed class ApiIntegrationTests
         Assert.Equal(HttpStatusCode.Created, resultResponse.StatusCode);
 
         using var publicResults = await client.GetAsync($"/api/v1/events/{eventId}/results");
-        Assert.Equal(HttpStatusCode.OK, publicResults.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, publicResults.StatusCode);
+        using var participantResults = Authorized(HttpMethod.Get, $"/api/v1/events/{eventId}/results", participantToken);
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.SendAsync(participantResults)).StatusCode);
+        using var organiserResults = Authorized(HttpMethod.Get, $"/api/v1/events/{eventId}/results", organiserToken);
+        var organiserResultsResponse = await client.SendAsync(organiserResults);
+        Assert.Equal(HttpStatusCode.OK, organiserResultsResponse.StatusCode);
+
+        using var participantHistory = Authorized(HttpMethod.Get, "/api/v1/users/me/history", participantToken);
+        var participantHistoryResponse = await client.SendAsync(participantHistory);
+        Assert.Equal(HttpStatusCode.OK, participantHistoryResponse.StatusCode);
+        Assert.Contains("\"totalFinishers\":1", await participantHistoryResponse.Content.ReadAsStringAsync(), StringComparison.OrdinalIgnoreCase);
+
+        var storedResult = await organiserResultsResponse.Content.ReadFromJsonAsync<List<ResultResponse>>();
+        Assert.NotNull(storedResult);
+        using var markDidNotFinish = Authorized(
+            HttpMethod.Put,
+            $"/api/v1/results/{storedResult![0].ResultId}",
+            organiserToken,
+            new { status = "DNF" });
+        Assert.Equal(HttpStatusCode.OK, (await client.SendAsync(markDidNotFinish)).StatusCode);
+
+        using var updatedResultsRequest = Authorized(HttpMethod.Get, $"/api/v1/events/{eventId}/results", organiserToken);
+        var updatedResults = await (await client.SendAsync(updatedResultsRequest)).Content.ReadFromJsonAsync<List<ResultResponse>>();
+        Assert.NotNull(updatedResults);
+        Assert.Equal("DNF", updatedResults![0].Status);
+        Assert.Null(updatedResults[0].FinishTimeSeconds);
+        Assert.Null(updatedResults[0].PositionOverall);
     }
 
     [Fact]
@@ -217,6 +267,75 @@ public sealed class ApiIntegrationTests
         var history = await participantClient.GetAsync("/api/v1/users/me/history");
         Assert.Equal(HttpStatusCode.OK, history.StatusCode);
         Assert.Contains($"\"eventId\":{eventId}", await history.Content.ReadAsStringAsync(), StringComparison.OrdinalIgnoreCase);
+        var weather = await participantClient.GetAsync($"/api/v1/events/{eventId}/weather");
+        Assert.Equal(HttpStatusCode.OK, weather.StatusCode);
+        Assert.Contains("\"available\":false", await weather.Content.ReadAsStringAsync(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task EnrolmentAndCancellation_EnforceScheduledEventRules()
+    {
+        using var factory = new RaceDayApiFactory();
+        using var client = factory.CreateClient();
+        var organiserToken = await RegisterAndLogin(client, "cancel-owner@example.com", "Organiser");
+        var participantToken = await RegisterAndLogin(client, "cancel-runner@example.com", "Participant");
+        var eventId = await CreateEvent(client, organiserToken);
+
+        using var categoryRequest = Authorized(HttpMethod.Post, $"/api/v1/events/{eventId}/categories", organiserToken, new
+        {
+            name = "5 km",
+            distanceKm = 5m
+        });
+        var category = await (await client.SendAsync(categoryRequest)).Content.ReadFromJsonAsync<CategoryResponse>();
+        Assert.NotNull(category);
+
+        using var enrolRequest = Authorized(HttpMethod.Post, $"/api/v1/events/{eventId}/enrolments", participantToken, new
+        {
+            categoryId = category!.CategoryId
+        });
+        var enrolment = await (await client.SendAsync(enrolRequest)).Content.ReadFromJsonAsync<EnrolmentResponse>();
+        Assert.NotNull(enrolment);
+
+        using var earlyResult = Authorized(
+            HttpMethod.Post,
+            $"/api/v1/enrolments/{enrolment!.EnrolmentId}/result",
+            organiserToken,
+            new
+            {
+                finishTimeSeconds = 3600,
+                positionOverall = 1,
+                status = "Finished"
+            });
+        Assert.Equal(HttpStatusCode.Conflict, (await client.SendAsync(earlyResult)).StatusCode);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<RaceDayDbContext>();
+            var raceEvent = await db.Event.SingleAsync(item => item.EventId == eventId);
+            raceEvent.EventDateTime = DateTime.UtcNow.AddMinutes(-1);
+            await db.SaveChangesAsync();
+        }
+        using var lateCancellation = Authorized(HttpMethod.Delete, $"/api/v1/enrolments/{enrolment.EnrolmentId}", participantToken);
+        Assert.Equal(HttpStatusCode.Conflict, (await client.SendAsync(lateCancellation)).StatusCode);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<RaceDayDbContext>();
+            var raceEvent = await db.Event.SingleAsync(item => item.EventId == eventId);
+            raceEvent.EventDateTime = DateTime.UtcNow.AddDays(30);
+            await db.SaveChangesAsync();
+        }
+        using var cancelEvent = Authorized(HttpMethod.Post, $"/api/v1/events/{eventId}/cancel", organiserToken);
+        Assert.Equal(HttpStatusCode.OK, (await client.SendAsync(cancelEvent)).StatusCode);
+
+        using var cancelledEnrolment = Authorized(HttpMethod.Delete, $"/api/v1/enrolments/{enrolment!.EnrolmentId}", participantToken);
+        Assert.Equal(HttpStatusCode.Conflict, (await client.SendAsync(cancelledEnrolment)).StatusCode);
+
+        using var reopenEnrolment = Authorized(HttpMethod.Post, $"/api/v1/events/{eventId}/enrolments", participantToken, new
+        {
+            categoryId = category.CategoryId
+        });
+        Assert.Equal(HttpStatusCode.Conflict, (await client.SendAsync(reopenEnrolment)).StatusCode);
     }
 
     private static async Task<string> RegisterAndLogin(HttpClient client, string email, string role)
@@ -262,7 +381,7 @@ public sealed class ApiIntegrationTests
             province = "Western Cape",
             distanceKm = 10m,
             eventDateTime = DateTime.UtcNow.AddDays(30),
-            status = "Open"
+            status = "Scheduled"
         });
         var response = await client.SendAsync(request);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
@@ -298,5 +417,13 @@ public sealed class ApiIntegrationTests
     private sealed class RouteResponse
     {
         public int RouteId { get; init; }
+    }
+
+    private sealed class ResultResponse
+    {
+        public int ResultId { get; init; }
+        public string Status { get; init; } = null!;
+        public int? FinishTimeSeconds { get; init; }
+        public int? PositionOverall { get; init; }
     }
 }
