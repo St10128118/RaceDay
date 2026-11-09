@@ -12,9 +12,11 @@ namespace RaceDay.Api.Controllers;
 public sealed class ResultsController(RaceDayDbContext db) : ControllerBase
 {
     [HttpGet("events/{eventId:int}/results")]
+    [Authorize(Roles = "Organiser")]
     public async Task<ActionResult<IEnumerable<ResultDto>>> GetForEvent(int eventId)
     {
-        if (!await db.Event.AnyAsync(item => item.EventId == eventId)) return NotFound();
+        var ownership = await CheckEventOwnership(eventId);
+        if (ownership is not null) return ownership;
         var results = await db.Result.AsNoTracking()
             .Where(result => result.Enrolment!.EventId == eventId)
             .OrderBy(result => result.PositionOverall)
@@ -45,17 +47,33 @@ public sealed class ResultsController(RaceDayDbContext db) : ControllerBase
         if (enrolment is null) return NotFound();
         var ownership = await CheckEventOwnership(enrolment.EventId);
         if (ownership is not null) return ownership;
+        if (!await IsEventCompleted(enrolment.EventId))
+            return Conflict(new { message = "Mark the event Completed before recording results." });
         if (await db.Result.AnyAsync(item => item.EnrolmentId == enrolmentId))
             return Conflict(new { message = "A result already exists for this enrolment." });
+        if (!IsSupportedStatus(request.Status))
+            return BadRequest(new { message = "Status must be Finished, DNF, DNS, or DSQ." });
+        if (string.Equals(request.Status, "Finished", StringComparison.OrdinalIgnoreCase) &&
+            (!request.FinishTimeSeconds.HasValue || !request.PositionOverall.HasValue))
+            return BadRequest(new { message = "Finished results require a finish time and overall position." });
+        var normalizedStatus = NormalizeStatus(request.Status);
 
         var result = new Result
         {
             EnrolmentId = enrolmentId,
-            FinishTimeSeconds = request.FinishTimeSeconds,
-            PositionOverall = request.PositionOverall,
-            PositionCategory = request.PositionCategory,
-            PositionGender = request.PositionGender,
-            Status = request.Status.Trim()
+            FinishTimeSeconds = normalizedStatus == "Finished"
+                ? request.FinishTimeSeconds
+                : null,
+            PositionOverall = normalizedStatus == "Finished"
+                ? request.PositionOverall
+                : null,
+            PositionCategory = normalizedStatus == "Finished"
+                ? request.PositionCategory
+                : null,
+            PositionGender = normalizedStatus == "Finished"
+                ? request.PositionGender
+                : null,
+            Status = normalizedStatus
         };
         db.Result.Add(result);
         await db.SaveChangesAsync();
@@ -71,12 +89,31 @@ public sealed class ResultsController(RaceDayDbContext db) : ControllerBase
         if (result is null) return NotFound();
         var ownership = await CheckEventOwnership(result.Enrolment!.EventId);
         if (ownership is not null) return ownership;
+        if (!await IsEventCompleted(result.Enrolment.EventId))
+            return Conflict(new { message = "Results can only be changed after the event is Completed." });
+
+        var status = request.Status ?? result.Status;
+        var finishTimeSeconds = request.FinishTimeSeconds ?? result.FinishTimeSeconds;
+        var positionOverall = request.PositionOverall ?? result.PositionOverall;
+        if (!IsSupportedStatus(status))
+            return BadRequest(new { message = "Status must be Finished, DNF, DNS, or DSQ." });
+        status = NormalizeStatus(status);
+        if (string.Equals(status, "Finished", StringComparison.OrdinalIgnoreCase) &&
+            (!finishTimeSeconds.HasValue || !positionOverall.HasValue))
+            return BadRequest(new { message = "Finished results require a finish time and overall position." });
 
         if (request.FinishTimeSeconds.HasValue) result.FinishTimeSeconds = request.FinishTimeSeconds;
         if (request.PositionOverall.HasValue) result.PositionOverall = request.PositionOverall;
         if (request.PositionCategory.HasValue) result.PositionCategory = request.PositionCategory;
         if (request.PositionGender.HasValue) result.PositionGender = request.PositionGender;
-        if (request.Status is not null) result.Status = request.Status.Trim();
+        if (request.Status is not null) result.Status = status;
+        if (!string.Equals(status, "Finished", StringComparison.OrdinalIgnoreCase))
+        {
+            result.FinishTimeSeconds = null;
+            result.PositionOverall = null;
+            result.PositionCategory = null;
+            result.PositionGender = null;
+        }
         await db.SaveChangesAsync();
         return Ok(ToDto(result));
     }
@@ -105,6 +142,9 @@ public sealed class ResultsController(RaceDayDbContext db) : ControllerBase
         return organiserId == User.GetUserId() ? null : Forbid();
     }
 
+    private Task<bool> IsEventCompleted(int eventId) =>
+        db.Event.AnyAsync(item => item.EventId == eventId && item.Status == "Completed");
+
     private async Task<bool> CanViewEnrolment(EventEnrolment enrolment)
     {
         var userId = User.GetUserId();
@@ -124,5 +164,20 @@ public sealed class ResultsController(RaceDayDbContext db) : ControllerBase
         PositionCategory = result.PositionCategory,
         PositionGender = result.PositionGender,
         Status = result.Status
+    };
+
+    private static bool IsSupportedStatus(string status) =>
+        status.Equals("Finished", StringComparison.OrdinalIgnoreCase) ||
+        status.Equals("DNF", StringComparison.OrdinalIgnoreCase) ||
+        status.Equals("DNS", StringComparison.OrdinalIgnoreCase) ||
+        status.Equals("DSQ", StringComparison.OrdinalIgnoreCase);
+
+    private static string NormalizeStatus(string status) => status.ToUpperInvariant() switch
+    {
+        "FINISHED" => "Finished",
+        "DNF" => "DNF",
+        "DNS" => "DNS",
+        "DSQ" => "DSQ",
+        _ => status.Trim()
     };
 }
