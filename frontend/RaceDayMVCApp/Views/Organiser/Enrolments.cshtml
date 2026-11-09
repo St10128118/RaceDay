@@ -1,0 +1,62 @@
+@model EnrolmentsViewModel
+@{
+    ViewData["Title"] = "Event start list";
+}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-3 mb-4">
+    <div><p class="eyebrow mb-1">@Model.Event.Name</p><h1 class="h2 display-heading mb-0">Start list &amp; results</h1></div>
+    <span class="status-pill @(Model.Event.Status == "Cancelled" ? "status-cancelled" : Model.Event.Status == "Completed" ? "status-finished" : "status-confirmed")">@Model.Event.Status</span>
+</div>
+<p><a asp-action="Index" class="small text-decoration-none">← Organiser dashboard</a></p>
+@if (Model.Error is not null) { <div class="alert alert-warning" role="status">@Model.Error</div> }
+<div class="surface-card overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light"><tr><th>Participant</th><th>Category</th><th>Enrolment</th><th>Result</th><th class="text-end">Action</th></tr></thead>
+            <tbody>
+            @if (Model.Enrolments.Count == 0)
+            {
+                <tr><td colspan="5" class="text-center text-muted py-4">No participants have enrolled yet.</td></tr>
+            }
+            @foreach (var enrolment in Model.Enrolments)
+            {
+                var name = $"{enrolment.ParticipantFirstName} {enrolment.ParticipantLastName}".Trim();
+                var hasResult = Model.Results.TryGetValue(enrolment.EnrolmentId, out var result);
+                var enrolmentLabel = enrolment.IsConfirmed ? "Confirmed" : enrolment.PaymentStatus;
+                <tr>
+                    <td><div class="fw-semibold">@(string.IsNullOrWhiteSpace(name) ? $"Participant #{enrolment.ParticipantId}" : name)</div><div class="event-meta">Bib @(enrolment.BibNumber ?? "not assigned")</div></td>
+                    <td>@(enrolment.CategoryName ?? $"Category #{enrolment.CategoryId}")</td>
+                    <td><span class="status-pill @(enrolment.IsConfirmed ? "status-confirmed" : "status-pending")">@enrolmentLabel</span></td>
+                    <td>
+                        @if (hasResult)
+                        {
+                            <span class="status-pill @(result!.Status == "Finished" ? "status-finished" : result.Status == "DSQ" ? "status-dsq" : "status-pending")">@result.Status</span>
+                            @if (result.PositionOverall.HasValue) { <span class="small ms-1">#@result.PositionOverall</span> }
+                            @if (result.FinishTimeSeconds.HasValue) { <div class="event-meta">@TimeSpan.FromSeconds(result.FinishTimeSeconds.Value).ToString(@"h\:mm\:ss")</div> }
+                        }
+                        else
+                        {
+                            <span class="text-muted">Not entered</span>
+                        }
+                    </td>
+                    <td class="text-end">
+                        <div class="d-inline-flex gap-2">
+                            @if (Model.Event.Status == "Completed")
+                            {
+                                <a class="btn btn-sm btn-outline-primary" asp-action="EditResult" asp-route-eventId="@Model.Event.EventId" asp-route-enrolmentId="@enrolment.EnrolmentId">@(hasResult ? "Edit result" : "Enter result")</a>
+                                @if (hasResult)
+                                {
+                                    <form asp-action="DeleteResult" asp-route-eventId="@Model.Event.EventId" asp-route-resultId="@result!.ResultId" method="post" onsubmit="return confirm('Delete this result?');"><button class="btn btn-sm btn-outline-danger" type="submit">Delete</button></form>
+                                }
+                            }
+                            else
+                            {
+                                <span class="small text-muted">Available after completion</span>
+                            }
+                        </div>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

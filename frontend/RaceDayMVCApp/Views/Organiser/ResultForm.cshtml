@@ -1,0 +1,39 @@
+@model ResultEditorViewModel
+@{
+    ViewData["Title"] = Model.ResultId.HasValue ? "Edit result" : "Enter result";
+}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="surface-card p-4 p-md-5">
+            <a asp-action="Enrolments" asp-route-eventId="@Model.EventId" class="small text-decoration-none">← Back to start list</a>
+            <p class="eyebrow mt-4 mb-1">Race results</p>
+            <h1 class="h2 display-heading mb-4">@(Model.ResultId.HasValue ? "Update result" : "Enter participant result")</h1>
+            <form asp-action="SaveResult" asp-route-eventId="@Model.EventId" asp-route-enrolmentId="@Model.EnrolmentId" method="post">
+                <input asp-for="ResultId" type="hidden" />
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label asp-for="Status" class="form-label"></label>
+                        <select asp-for="Status" class="form-select">
+                            <option value="Finished">Finished</option>
+                            <option value="DNF">Did not finish (DNF)</option>
+                            <option value="DNS">Did not start (DNS)</option>
+                            <option value="DSQ">Disqualified (DSQ)</option>
+                        </select>
+                        <span asp-validation-for="Status" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-4"><label asp-for="FinishTimeSeconds" class="form-label"></label><input asp-for="FinishTimeSeconds" class="form-control" placeholder="e.g. 3725" /><span asp-validation-for="FinishTimeSeconds" class="text-danger small"></span><div class="form-text">Enter total seconds, e.g. 1:02:05 = 3725.</div></div>
+                    <div class="col-md-4"><label asp-for="PositionOverall" class="form-label"></label><input asp-for="PositionOverall" class="form-control" /><span asp-validation-for="PositionOverall" class="text-danger small"></span></div>
+                    <div class="col-md-6"><label asp-for="PositionCategory" class="form-label"></label><input asp-for="PositionCategory" class="form-control" /><span asp-validation-for="PositionCategory" class="text-danger small"></span></div>
+                    <div class="col-md-6"><label asp-for="PositionGender" class="form-label"></label><input asp-for="PositionGender" class="form-control" /><span asp-validation-for="PositionGender" class="text-danger small"></span></div>
+                </div>
+                <p class="form-text mt-3">Finish time and overall position are required for Finished results. Non-finisher statuses do not keep finish positions or times.</p>
+                <div class="d-flex justify-content-end gap-2 mt-4">
+                    <a asp-action="Enrolments" asp-route-eventId="@Model.EventId" class="btn btn-outline-secondary">Cancel</a>
+                    <button class="btn btn-primary" type="submit">Save result</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }
