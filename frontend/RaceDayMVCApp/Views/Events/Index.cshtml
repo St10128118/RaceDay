@@ -1,0 +1,101 @@
+@model EventListViewModel
+@using RaceDayMVCApp.Services
+@{
+    ViewData["Title"] = "Find events";
+}
+
+<section class="hero-panel mb-5">
+    <p class="eyebrow text-white-50 mb-3">South Africa moves here</p>
+    <h1 class="display-4 mb-3">Find your next <span class="hero-accent">start line.</span></h1>
+    <p class="mb-4">Road runs, walks, and rides. Find a race, choose your distance, and make race day yours.</p>
+    <a class="btn btn-accent btn-lg" href="#event-list">Explore events <span aria-hidden="true">↓</span></a>
+</section>
+
+<div class="d-flex flex-column flex-md-row align-items-md-end justify-content-between gap-3 mb-3" id="event-list">
+    <div>
+        <p class="eyebrow mb-1">On the calendar</p>
+        <h2 class="h3 display-heading mb-0">Upcoming events</h2>
+    </div>
+    <span class="text-muted">@Model.Events.Count event@(Model.Events.Count == 1 ? "" : "s") to explore</span>
+</div>
+
+<form asp-controller="Events" asp-action="Index" method="get" class="surface-card p-3 p-md-4 mb-4">
+    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+    <div class="row g-3 align-items-end">
+        <div class="col-sm-6 col-lg-3">
+            <label for="city" class="form-label">City</label>
+            <input id="city" name="city" value="@Model.City" class="form-control" placeholder="e.g. Cape Town" />
+        </div>
+        <div class="col-sm-6 col-lg-2">
+            <label for="province" class="form-label">Province</label>
+            <select id="province" name="province" class="form-select">
+                <option value="">All provinces</option>
+                @foreach (var province in new[] { "Eastern Cape", "Free State", "Gauteng", "KwaZulu-Natal", "Limpopo", "Mpumalanga", "North West", "Northern Cape", "Western Cape" })
+                {
+                    <option value="@province" selected="@(Model.Province == province)">@province</option>
+                }
+            </select>
+        </div>
+        <div class="col-sm-6 col-lg-2">
+            <label for="eventType" class="form-label">Activity</label>
+            <select id="eventType" name="eventType" class="form-select">
+                <option value="">All activities</option>
+                @foreach (var activity in new[] { "Running", "Walking", "Cycling" })
+                {
+                    <option value="@activity" selected="@(Model.EventType == activity)">@activity</option>
+                }
+            </select>
+        </div>
+        <div class="col-sm-6 col-lg-2">
+            <label for="from" class="form-label">From</label>
+            <input id="from" name="from" type="date" value="@Model.From?.ToString("yyyy-MM-dd")" class="form-control" />
+        </div>
+        <div class="col-sm-6 col-lg-2">
+            <label for="to" class="form-label">To</label>
+            <input id="to" name="to" type="date" value="@Model.To?.ToString("yyyy-MM-dd")" class="form-control" />
+        </div>
+        <div class="col-sm-6 col-lg-1 d-grid">
+            <button class="btn btn-primary" type="submit">Filter</button>
+        </div>
+    </div>
+</form>
+
+@if (!string.IsNullOrWhiteSpace(Model.Error))
+{
+    <div class="alert alert-warning" role="status">@Model.Error</div>
+}
+
+@if (Model.Events.Count == 0)
+{
+    <div class="surface-card p-5 text-center">
+        <h3 class="h5 display-heading">No events match those filters yet</h3>
+        <p class="text-muted mb-3">Try another city or clear the filters to see what’s coming up.</p>
+        <a asp-action="Index" class="btn btn-outline-primary">Clear filters</a>
+    </div>
+}
+else
+{
+    <div class="row g-4">
+        @foreach (var raceEvent in Model.Events)
+        {
+            <div class="col-md-6 col-xl-4">
+                <article class="event-card">
+                    <div class="event-card-top"></div>
+                    <div class="p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="event-type">@raceEvent.EventType</span>
+                            <span class="status-pill status-confirmed">@raceEvent.Status</span>
+                        </div>
+                        <h3 class="h5 fw-bold mb-2">@raceEvent.Name</h3>
+                        <p class="event-meta mb-3">@raceEvent.City, @raceEvent.Province</p>
+                        <div class="d-flex flex-wrap gap-3 event-meta mb-4">
+                            <span>@SouthAfricaTime.ToLocal(raceEvent.EventDateTime).ToString("ddd, d MMM yyyy · HH:mm")</span>
+                            <span>@raceEvent.DistanceKm.ToString("0.##") km</span>
+                        </div>
+                        <a class="btn btn-outline-primary w-100" asp-action="Details" asp-route-id="@raceEvent.EventId">Event details</a>
+                    </div>
+                </article>
+            </div>
+        }
+    </div>
+}

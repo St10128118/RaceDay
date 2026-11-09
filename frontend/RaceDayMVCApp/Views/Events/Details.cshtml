@@ -1,0 +1,157 @@
+@model EventDetailsViewModel
+@using RaceDayMVCApp.Services
+@{
+    ViewData["Title"] = Model.Event.Name;
+    var start = SouthAfricaTime.ToLocal(Model.Event.EventDateTime);
+    var isScheduled = Model.Event.Status == "Scheduled" && Model.Event.EventDateTime > DateTime.UtcNow;
+}
+
+<a asp-action="Index" class="text-decoration-none small fw-semibold">← All events</a>
+<div class="row g-4 mt-2">
+    <div class="col-lg-8">
+        <section class="surface-card p-4 p-lg-5">
+            <div class="d-flex flex-wrap justify-content-between gap-2 mb-3">
+                <span class="event-type">@Model.Event.EventType</span>
+                <span class="status-pill @(Model.Event.Status == "Cancelled" ? "status-cancelled" : "status-confirmed")">@Model.Event.Status</span>
+            </div>
+            <h1 class="display-heading mb-3">@Model.Event.Name</h1>
+            <p class="event-meta mb-4">@Model.Event.Location · @Model.Event.City, @Model.Event.Province</p>
+            <div class="row g-3 mb-4">
+                <div class="col-sm-6"><div class="weather-panel p-3 h-100"><div class="eyebrow">Race day</div><strong>@start.ToString("dddd, d MMMM yyyy · HH:mm")</strong><div class="text-muted small">South Africa time (SAST)</div></div></div>
+                <div class="col-sm-3"><div class="weather-panel p-3 h-100"><div class="eyebrow">Distance</div><strong>@Model.Event.DistanceKm.ToString("0.##") km</strong></div></div>
+                <div class="col-sm-3"><div class="weather-panel p-3 h-100"><div class="eyebrow">Entry limit</div><strong>@(Model.Event.MaxParticipants?.ToString() ?? "Open")</strong></div></div>
+            </div>
+            @if (!string.IsNullOrWhiteSpace(Model.Event.Description))
+            {
+                <h2 class="h5 form-section-title">About the event</h2>
+                <p class="mb-0">@Model.Event.Description</p>
+            }
+        </section>
+
+        <section class="surface-card p-4 mt-4">
+            <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                <div>
+                    <p class="eyebrow mb-1">Plan your race day</p>
+                    <h2 class="h4 display-heading mb-0">Weather forecast</h2>
+                </div>
+                <span class="text-muted small">via <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo</a></span>
+            </div>
+            @if (Model.Weather?.Available == true)
+            {
+                <div class="row g-3">
+                    <div class="col-6 col-md-3"><div class="weather-panel p-3 h-100"><span class="event-meta">Conditions</span><div class="fw-bold">@Model.Weather.Conditions</div></div></div>
+                    <div class="col-6 col-md-3"><div class="weather-panel p-3 h-100"><span class="event-meta">Temperature</span><div class="fw-bold">@Model.Weather.MinimumTemperatureCelsius–@Model.Weather.MaximumTemperatureCelsius °C</div></div></div>
+                    <div class="col-6 col-md-3"><div class="weather-panel p-3 h-100"><span class="event-meta">Rain chance</span><div class="fw-bold">@Model.Weather.PrecipitationProbabilityPercent%</div></div></div>
+                    <div class="col-6 col-md-3"><div class="weather-panel p-3 h-100"><span class="event-meta">Max wind</span><div class="fw-bold">@Model.Weather.MaximumWindSpeedKph km/h</div></div></div>
+                </div>
+                <p class="small text-muted mt-3 mb-0">Forecasts are estimates and may change as race day approaches.</p>
+            }
+            else
+            {
+                <p class="text-muted mb-0">@(Model.Weather?.Message ?? "Weather information is temporarily unavailable. Please try again later.")</p>
+            }
+        </section>
+
+        <section class="surface-card p-4 mt-4">
+            <p class="eyebrow mb-1">Pick your challenge</p>
+            <h2 class="h4 display-heading mb-3">Categories</h2>
+            @if (Model.Categories.Count == 0)
+            {
+                <p class="text-muted mb-0">Categories haven’t been added yet.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table mb-0">
+                        <thead><tr><th>Category</th><th>Distance</th><th>Age range</th></tr></thead>
+                        <tbody>
+                        @foreach (var category in Model.Categories)
+                        {
+                            <tr>
+                                <td class="fw-semibold">@category.Name</td>
+                                <td>@(category.DistanceKm.HasValue ? $"{category.DistanceKm:0.##} km" : "—")</td>
+                                <td>@(category.MinAge.HasValue || category.MaxAge.HasValue ? $"{category.MinAge?.ToString() ?? "Any"}–{category.MaxAge?.ToString() ?? "Any"}" : "All ages")</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+                <p class="small text-muted mb-0 mt-2">Choose the category that fits you; age eligibility is not automatically checked.</p>
+            }
+        </section>
+
+        <section class="surface-card p-4 mt-4">
+            <p class="eyebrow mb-1">Know the course</p>
+            <h2 class="h4 display-heading mb-3">Routes</h2>
+            @if (Model.Routes.Count == 0)
+            {
+                <p class="text-muted mb-0">Route details haven’t been added yet.</p>
+            }
+            else
+            {
+                <div class="row g-3">
+                    @foreach (var route in Model.Routes)
+                    {
+                        <div class="col-md-6">
+                            <div class="weather-panel p-3 h-100">
+                                <h3 class="h6 fw-bold">@route.Name</h3>
+                                <p class="event-meta mb-2">@route.DistanceKm.ToString("0.##") km · @(route.ElevationGainMeters.HasValue ? $"{route.ElevationGainMeters} m elevation gain" : "Elevation not listed")</p>
+                                @if (!string.IsNullOrWhiteSpace(route.GPXUrl))
+                                {
+                                    <a href="@route.GPXUrl" target="_blank" rel="noopener noreferrer">View GPX route <span aria-hidden="true">↗</span></a>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </section>
+    </div>
+
+    <aside class="col-lg-4">
+        <div class="surface-card p-4 sticky-lg-top" style="top: 1.25rem;">
+            <p class="eyebrow mb-1">Ready to race?</p>
+            <h2 class="h4 display-heading">Join this event</h2>
+            @if (!isScheduled)
+            {
+                <p class="text-muted mb-0">This event is not currently open for enrolment.</p>
+            }
+            else if (User.Identity?.IsAuthenticated != true)
+            {
+                <p class="text-muted">Sign in as a Participant to choose your category and enrol.</p>
+                <a class="btn btn-primary w-100" asp-controller="Account" asp-action="Login" asp-route-returnUrl="@Context.Request.Path">Sign in to enrol</a>
+            }
+            else if (User.IsInRole("Participant"))
+            {
+                @if (Model.Categories.Count == 0)
+                {
+                    <p class="text-muted mb-0">Enrolment will open when the organiser adds a category.</p>
+                }
+                else
+                {
+                    <form asp-controller="Participant" asp-action="Enrol" method="post">
+                        <input type="hidden" name="eventId" value="@Model.Event.EventId" />
+                        <label for="categoryId" class="form-label">Choose a category</label>
+                        <select id="categoryId" name="categoryId" class="form-select mb-3" required>
+                            @foreach (var category in Model.Categories)
+                            {
+                                <option value="@category.CategoryId">@category.Name (@(category.DistanceKm?.ToString("0.##") ?? Model.Event.DistanceKm.ToString("0.##")) km)</option>
+                            }
+                        </select>
+                        <button class="btn btn-primary w-100" type="submit">Enrol now</button>
+                        <p class="small text-muted mt-2 mb-0">Your place is recorded immediately and starts as Pending.</p>
+                    </form>
+                }
+            }
+            else
+            {
+                <p class="text-muted mb-0">You’re signed in as an Organiser. Participants can enrol in this event.</p>
+            }
+        </div>
+    </aside>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.Error))
+{
+    <div class="alert alert-warning mt-4" role="status">@Model.Error</div>
+}
