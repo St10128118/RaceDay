@@ -1,0 +1,28 @@
+@model CategoryEditorViewModel
+@{
+    ViewData["Title"] = Model.CategoryId.HasValue ? "Edit category" : "Add category";
+}
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="surface-card p-4 p-md-5">
+            <a asp-action="Categories" asp-route-eventId="@Model.EventId" class="small text-decoration-none">← Back to categories</a>
+            <p class="eyebrow mt-4 mb-1">Event categories</p>
+            <h1 class="h2 display-heading mb-4">@(Model.CategoryId.HasValue ? "Edit category" : "Add a category")</h1>
+            <form asp-action="@(Model.CategoryId.HasValue ? "EditCategory" : "CreateCategory")" asp-route-eventId="@Model.EventId" asp-route-categoryId="@Model.CategoryId" method="post">
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                <div class="mb-3"><label asp-for="Name" class="form-label"></label><input asp-for="Name" class="form-control" /><span asp-validation-for="Name" class="text-danger small"></span></div>
+                <div class="row g-3">
+                    <div class="col-md-4"><label asp-for="DistanceKm" class="form-label"></label><input asp-for="DistanceKm" class="form-control" /><span asp-validation-for="DistanceKm" class="text-danger small"></span></div>
+                    <div class="col-md-4"><label asp-for="MinAge" class="form-label"></label><input asp-for="MinAge" class="form-control" /><span asp-validation-for="MinAge" class="text-danger small"></span></div>
+                    <div class="col-md-4"><label asp-for="MaxAge" class="form-label"></label><input asp-for="MaxAge" class="form-control" /><span asp-validation-for="MaxAge" class="text-danger small"></span></div>
+                </div>
+                <p class="form-text">Age ranges are displayed for guidance; participant age is not validated.</p>
+                <div class="d-flex justify-content-end gap-2 mt-4">
+                    <a asp-action="Categories" asp-route-eventId="@Model.EventId" class="btn btn-outline-secondary">Cancel</a>
+                    <button class="btn btn-primary" type="submit">Save category</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }
