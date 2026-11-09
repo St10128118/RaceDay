@@ -1,0 +1,123 @@
+@model ParticipantHistoryViewModel
+@using RaceDayMVCApp.Services
+@{
+    ViewData["Title"] = Model.OnlyResults ? "My results" : "My races";
+    var enrolledCount = Model.Items.Count(item => item.History.Result is null);
+    var resultCount = Model.Items.Count(item => item.History.Result is not null);
+    string Ordinal(int? position)
+    {
+        if (!position.HasValue) return "—";
+        var remainder = position.Value % 100;
+        var suffix = remainder is 11 or 12 or 13 ? "th" : (position.Value % 10) switch
+        {
+            1 => "st",
+            2 => "nd",
+            3 => "rd",
+            _ => "th"
+        };
+        return $"{position}{suffix}";
+    }
+}
+
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-3 mb-4">
+    <div>
+        <p class="eyebrow mb-1">Your race calendar</p>
+        <h1 class="h2 display-heading mb-0">@(Model.OnlyResults ? "My results" : "My races")</h1>
+    </div>
+    <div class="d-flex gap-2">
+        <a class="btn @(Model.OnlyResults ? "btn-outline-primary" : "btn-primary")" asp-action="Index">My races</a>
+        <a class="btn @(Model.OnlyResults ? "btn-primary" : "btn-outline-primary")" asp-action="Results">My results</a>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.Error))
+{
+    <div class="alert alert-warning" role="status">@Model.Error</div>
+}
+else if (!Model.OnlyResults)
+{
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6"><div class="surface-card p-3"><span class="event-meta">Events entered</span><div class="stat-value">@Model.Items.Count</div></div></div>
+        <div class="col-sm-6"><div class="surface-card p-3"><span class="event-meta">Results recorded</span><div class="stat-value">@resultCount</div></div></div>
+    </div>
+}
+
+@if (Model.Items.Count == 0 && string.IsNullOrWhiteSpace(Model.Error))
+{
+    <div class="surface-card p-5 text-center">
+        <p class="eyebrow">Every journey starts somewhere</p>
+        <h2 class="h4 display-heading">@(Model.OnlyResults ? "Your results will appear here" : "You haven’t entered an event yet")</h2>
+        <p class="text-muted">@(Model.OnlyResults ? "Once an organiser records your result, you’ll find it here." : "Find an event that gets you moving.")</p>
+        <a class="btn btn-primary" asp-controller="Events" asp-action="Index">Explore events</a>
+    </div>
+}
+else
+{
+    <div class="d-grid gap-3">
+        @foreach (var item in Model.Items)
+        {
+            var history = item.History;
+            var raceEvent = history.Event;
+            var result = history.Result;
+            var eventStart = SouthAfricaTime.ToLocal(raceEvent.EventDateTime);
+            var enrolmentStatus = raceEvent.Status == "Cancelled"
+                ? "Cancelled"
+                : history.Enrolment.IsConfirmed ? "Confirmed" : history.Enrolment.PaymentStatus;
+            var badgeClass = enrolmentStatus switch
+            {
+                "Confirmed" => "status-confirmed",
+                "Cancelled" => "status-cancelled",
+                _ => "status-pending"
+            };
+            <article class="surface-card p-3 p-md-4">
+                <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
+                    <div class="flex-grow-1">
+                        <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                            <span class="event-type">@raceEvent.EventType</span>
+                            <span class="status-pill @badgeClass">@enrolmentStatus</span>
+                            @if (result is not null)
+                            {
+                                <span class="status-pill @(result.Status switch { "Finished" => "status-finished", "DSQ" => "status-dsq", _ => "status-pending" })">@result.Status</span>
+                            }
+                        </div>
+                        <h2 class="h5 fw-bold mb-1"><a class="text-decoration-none" asp-controller="Events" asp-action="Details" asp-route-id="@raceEvent.EventId">@raceEvent.Name</a></h2>
+                        <p class="event-meta mb-2">@eventStart.ToString("ddd, d MMM yyyy · HH:mm") · @raceEvent.City, @raceEvent.Province</p>
+                        <p class="small text-muted mb-0">Category: @(item.CategoryName ?? $"Category #{history.Enrolment.CategoryId}") · @raceEvent.DistanceKm.ToString("0.##") km</p>
+                    </div>
+                    <div class="text-lg-end">
+                        @if (result?.Status == "Finished")
+                        {
+                            <div class="eyebrow">Overall position</div>
+                            <div class="stat-value">@Ordinal(result.PositionOverall)</div>
+                            @if (result.TotalFinishers.HasValue)
+                            {
+                                <div class="event-meta">of @result.TotalFinishers finishers</div>
+                            }
+                            @if (result.FinishTimeSeconds.HasValue)
+                            {
+                                <div class="mt-2 fw-semibold">@TimeSpan.FromSeconds(result.FinishTimeSeconds.Value).ToString(@"h\:mm\:ss")</div>
+                            }
+                        }
+                        else if (result is not null)
+                        {
+                            <div class="eyebrow">Race result</div>
+                            <div class="fw-bold">@result.Status</div>
+                        }
+                        else
+                        {
+                            <div class="eyebrow">Enrolment status</div>
+                            <div class="fw-bold">@enrolmentStatus</div>
+                            @if (raceEvent.Status == "Scheduled" && raceEvent.EventDateTime > DateTime.UtcNow)
+                            {
+                                <form asp-action="CancelEnrolment" method="post" class="mt-2" onsubmit="return confirm('Cancel this event enrolment?');">
+                                    <input type="hidden" name="enrolmentId" value="@history.Enrolment.EnrolmentId" />
+                                    <button class="btn btn-sm btn-outline-danger" type="submit">Cancel enrolment</button>
+                                </form>
+                            }
+                        }
+                    </div>
+                </div>
+            </article>
+        }
+    </div>
+}
