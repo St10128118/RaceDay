@@ -1,0 +1,96 @@
+:root {
+  --race-forest: #173b32;
+  --race-forest-deep: #102b25;
+  --race-lime: #c5e86c;
+  --race-orange: #ef815b;
+  --race-paper: #f5f6f1;
+  --race-ink: #1c2824;
+  --race-muted: #69756f;
+  --race-line: #e2e7df;
+}
+
+html { min-height: 100%; }
+body {
+  min-height: 100vh;
+  background: var(--race-paper);
+  color: var(--race-ink);
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+a { color: var(--race-forest); }
+a:hover { color: var(--race-forest-deep); }
+.raced-nav { background: var(--race-forest); padding: .8rem 0; }
+.raced-brand { font-weight: 800; letter-spacing: -.04em; font-size: 1.35rem; }
+.brand-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 1.8rem;
+  height: 1.8rem;
+  margin-right: .25rem;
+  color: var(--race-forest);
+  background: var(--race-lime);
+  border-radius: .55rem;
+  font-size: 1rem;
+}
+.raced-nav .nav-link { color: rgba(255,255,255,.82); font-weight: 600; }
+.raced-nav .nav-link:hover, .nav-user { color: #fff; }
+.btn-accent { background: var(--race-lime); color: var(--race-forest-deep); border-color: var(--race-lime); font-weight: 700; }
+.btn-accent:hover { background: #d3f184; color: var(--race-forest-deep); border-color: #d3f184; }
+.btn-primary { background: var(--race-forest); border-color: var(--race-forest); }
+.btn-primary:hover { background: var(--race-forest-deep); border-color: var(--race-forest-deep); }
+.page-shell { min-height: calc(100vh - 146px); padding-top: 2rem; padding-bottom: 3rem; }
+.site-footer { background: #fff; border-top: 1px solid var(--race-line); padding: 1.2rem 0; color: var(--race-forest); font-weight: 650; }
+.footer-muted, .text-muted { color: var(--race-muted) !important; font-weight: 400; }
+.eyebrow { color: #5a705f; font-size: .75rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.display-heading { font-weight: 800; letter-spacing: -.045em; color: var(--race-forest-deep); }
+.surface-card, .event-card {
+  background: #fff;
+  border: 1px solid var(--race-line);
+  border-radius: 1rem;
+  box-shadow: 0 8px 26px rgba(23,59,50,.045);
+}
+.event-card { height: 100%; transition: transform .16s ease, box-shadow .16s ease; }
+.event-card:hover { transform: translateY(-2px); box-shadow: 0 13px 30px rgba(23,59,50,.09); }
+.event-card-top { height: .45rem; border-radius: 1rem 1rem 0 0; background: linear-gradient(90deg, var(--race-lime), #9ec854); }
+.event-type { color: #52665a; font-size: .75rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.event-meta { color: var(--race-muted); font-size: .92rem; }
+.stat-value { color: var(--race-forest); font-size: 1.6rem; font-weight: 800; }
+.status-pill { display: inline-flex; border-radius: 999px; padding: .28rem .7rem; font-size: .76rem; font-weight: 750; }
+.status-confirmed, .status-finished { background: #e4f4d5; color: #315d24; }
+.status-pending, .status-dnf, .status-dns { background: #fff1d2; color: #7a5411; }
+.status-cancelled, .status-dsq { background: #fde4df; color: #853b2c; }
+.form-control:focus, .form-select:focus, .form-check-input:focus {
+  border-color: #88a776;
+  box-shadow: 0 0 0 .2rem rgba(197,232,108,.3);
+}
+.form-label { color: #344c40; font-weight: 650; }
+.table > :not(caption) > * > * { padding: .85rem .75rem; vertical-align: middle; }
+.weather-panel { background: #f0f5e8; border: 1px solid #dfe9d2; border-radius: .9rem; }
+.hero-panel {
+  overflow: hidden;
+  position: relative;
+  border-radius: 1.25rem;
+  padding: clamp(2rem, 5vw, 4.5rem);
+  background: linear-gradient(125deg, var(--race-forest-deep), var(--race-forest) 64%, #39634b);
+  color: #fff;
+}
+.hero-panel::after {
+  content: "";
+  position: absolute;
+  width: 19rem;
+  height: 19rem;
+  right: -5rem;
+  top: -8rem;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2rem rgba(255,255,255,.035), 0 0 0 4rem rgba(255,255,255,.025);
+  pointer-events: none;
+}
+.hero-panel h1 { max-width: 45rem; color: white; font-weight: 850; letter-spacing: -.05em; }
+.hero-panel p { max-width: 38rem; color: rgba(255,255,255,.78); font-size: 1.1rem; }
+.hero-panel .hero-accent { color: var(--race-lime); }
+.form-section-title { color: var(--race-forest); font-weight: 750; }
+@media (max-width: 575.98px) {
+  .page-shell { padding-top: 1.25rem; }
+  .raced-nav .navbar-collapse { padding-top: .75rem; }
+  .hero-panel { border-radius: .9rem; }
+}
