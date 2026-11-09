@@ -79,6 +79,9 @@ public sealed class EnrolmentDto
     public string PaymentStatus { get; init; } = null!;
     public string? BibNumber { get; init; }
     public bool IsConfirmed { get; init; }
+    public string? ParticipantFirstName { get; init; }
+    public string? ParticipantLastName { get; init; }
+    public string? CategoryName { get; init; }
 }
 
 public sealed class EnrolmentCreateRequest
@@ -104,6 +107,7 @@ public sealed class ResultDto
     public int? PositionCategory { get; init; }
     public int? PositionGender { get; init; }
     public string Status { get; init; } = null!;
+    public int? TotalFinishers { get; init; }
 }
 
 public sealed class ResultCreateRequest
@@ -173,4 +177,17 @@ public sealed class ParticipantHistoryDto
     public EventDto Event { get; init; } = null!;
     public EnrolmentDto Enrolment { get; init; } = null!;
     public ResultDto? Result { get; init; }
+}
+
+public sealed class EventWeatherDto
+{
+    public bool Available { get; init; }
+    public string? Message { get; init; }
+    public DateOnly? ForecastDate { get; init; }
+    public decimal? MinimumTemperatureCelsius { get; init; }
+    public decimal? MaximumTemperatureCelsius { get; init; }
+    public int? PrecipitationProbabilityPercent { get; init; }
+    public decimal? MaximumWindSpeedKph { get; init; }
+    public string? Conditions { get; init; }
+    public string Provider { get; init; } = "Open-Meteo";
 }
