@@ -28,6 +28,7 @@ var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "RaceDay";
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddMemoryCache();
 builder.Services.AddSwaggerGen(options =>
 {
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -57,6 +58,10 @@ builder.Services.AddDbContext<RaceDayDbContext>(options =>
 
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddSingleton<Microsoft.AspNetCore.Identity.IPasswordHasher<RaceDay.Api.Models.User>, Microsoft.AspNetCore.Identity.PasswordHasher<RaceDay.Api.Models.User>>();
+builder.Services.AddHttpClient<IWeatherService, OpenMeteoWeatherService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(8);
+});
 
 var keyBytes = Encoding.UTF8.GetBytes(jwtKey);
 builder.Services.AddAuthentication(options =>
